@@ -1,0 +1,45 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build || echo "No build script, skipping"
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Build Docker images
+        run: |
+          docker build -t muqeet-mern-docker-backend ./backend
+          docker build -t muqeet-mern-docker-frontend ./frontend
+
+      - name: Push Docker images (optional)
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker tag muqeet-mern-docker-backend your-dockerhub-username/muqeet-backend:latest
+          docker tag muqeet-mern-docker-frontend your-dockerhub-username/muqeet-frontend:latest
+          docker push your-dockerhub-username/muqeet-backend:latest
+          docker push your-dockerhub-username/muqeet-frontend:latest
